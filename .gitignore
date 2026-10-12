@@ -1,0 +1,11 @@
+# 比赛数据（太大 / 不再分发，请从天池下载）
+train.csv
+testA.csv
+data/
+
+# Python
+__pycache__/
+.venv/
+
+# 本地
+.DS_Store
