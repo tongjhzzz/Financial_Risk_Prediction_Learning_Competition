@@ -37,9 +37,13 @@ class LoanNet(nn.Module):
         super().__init__()
         self.model = nn.Sequential(
             nn.Linear(n_features, 256),
+            nn.BatchNorm1d(256),
             nn.ReLU(),
+            nn.Dropout(0.3),
             nn.Linear(256, 128),
+            nn.BatchNorm1d(128),
             nn.ReLU(),
+            nn.Dropout(0.3),
             nn.Linear(128, 2)
         )
 
@@ -56,7 +60,7 @@ model = LoanNet().to(device)
 loss_fn = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-writer = SummaryWriter("logs/plain")
+writer = SummaryWriter("logs/dropout")
 os.makedirs("models", exist_ok=True)
 epochs = 10
 best_auc = 0
