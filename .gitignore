@@ -6,6 +6,7 @@ data/
 # Python
 __pycache__/
 .venv/
+.mplcache/
 
 # 本地
 .DS_Store
