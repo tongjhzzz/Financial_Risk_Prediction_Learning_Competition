@@ -9,10 +9,10 @@
 """
 import pandas as pd
 import torch
-from torch import nn
 from torch.utils.data import DataLoader
 
 from dataset import load_datasets
+from model import LoanNet
 
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
@@ -22,29 +22,12 @@ n_features = test_set[0].shape[0]  # 测试集没有标签，test_set[0] 直接�
 
 # 1. 网络结构：必须和训练时一模一样，否则参数对不上
 #    不能写 from train import LoanNet —— 那样会把 train.py 整个执行一遍，重新训练 10 轮
-#    视频里小土堆也是把模型类复制过来（或者单独放进 model.py 再 import）
-class LoanNet(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.model = nn.Sequential(
-            nn.Linear(n_features, 256),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(256, 128),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(128, 2)
-        )
-
-    def forward(self, x):
-        return self.model(x)
+#    所以把模型类单独放进 model.py，train.py 和 predict.py 都从那里 import
 
 
 # 2. 加载模型：视频里的「方式 2」—— 先建网络，再把保存的参数装进去
 #    map_location：不管保存时在哪个设备，先读到 CPU 上，再统一 .to(device)
-model = LoanNet()
+model = LoanNet(n_features)
 model.load_state_dict(torch.load("model_best.pth", map_location="cpu"))
 model = model.to(device)
 

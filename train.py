@@ -10,6 +10,7 @@
 import os
 
 import torch
+from model import LoanNet
 from sklearn.metrics import roc_auc_score
 from torch import nn
 from torch.utils.data import DataLoader
@@ -28,31 +29,9 @@ n_features = train_set[0][0].shape[0]  # 118
 train_loader = DataLoader(dataset=train_set, batch_size=1024, shuffle=True)
 val_loader = DataLoader(dataset=val_set, batch_size=1024, shuffle=False)
 
-# TODO 2【nn.Module / 线性层 / 非线性激活 / Sequential】
-# 输入 n_features 维，输出 2 维（违约 / 不违约，和视频 CIFAR10 输出 10 维同理）
-# 表格数据用不到卷积和池化，用几层 Linear + ReLU 就行，比如 118 -> 256 -> 128 -> 2
-# 进阶：每个 Linear 后面加 nn.BatchNorm1d、nn.Dropout(0.3) 试试效果
-class LoanNet(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.model = nn.Sequential(
-            nn.Linear(n_features, 256),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(256, 128),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(128, 2)
-        )
-
-    def forward(self, x):
-        x = self.model(x)
-        return x
 
 
-model = LoanNet().to(device)
+model = LoanNet(n_features).to(device)
 
 # TODO 3【损失函数与反向传播 / 优化器】
 # 输出 2 维 + 标签是 0/1，所以和视频一样用 CrossEntropyLoss
