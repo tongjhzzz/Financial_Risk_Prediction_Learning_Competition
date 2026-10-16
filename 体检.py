@@ -34,7 +34,9 @@ def guess_type(s, n_rows):
         return "全空", "整列都是缺失值，直接删"
     if nunique == 1:
         return "常数", "整列一个值，没有任何信息，删掉"
-    if n_valid > 0 and nunique == n_valid and n_rows > 100:
+    # 小数列每行都不一样很正常（金额、比率），只对整数列和文字列判断是不是 id
+    is_id_like_dtype = pd.api.types.is_integer_dtype(s) or not pd.api.types.is_numeric_dtype(s)
+    if is_id_like_dtype and n_valid > 0 and nunique == n_valid and n_rows > 100:
         return "疑似每行唯一", "像 id / 编号，删掉（除非它有业务含义）"
 
     # 能解析成日期的文字列
@@ -71,11 +73,13 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("path", help="csv 文件路径")
     p.add_argument("--no-header", action="store_true", help="文件没有表头")
-    p.add_argument("--names-file", help="没有表头时，每行一个列名的文本文件")
+    p.add_argument("--names-file", help="没有表头时，每行一个列名的文本文件（给了它就自动当作 --no-header）")
     p.add_argument("--sep", default=",", help="分隔符，默认逗号")
     p.add_argument("--target", help="目标列的名字（有表头时用）")
     p.add_argument("--nrows", type=int, default=None, help="只读前 N 行，文件很大时用")
     args = p.parse_args()
+    if args.names_file:
+        args.no_header = True
 
     names = None
     if args.names_file:
@@ -104,7 +108,7 @@ def main():
         print(f"目标列 {args.target}")
         print(t.value_counts(dropna=False).head(10).to_string())
         if t.nunique() == 2:
-            print(f"→ 二分类，正例（取值小的那个通常在后面）比例：{t.value_counts(normalize=True).min():.4f}")
+            print(f"→ 二分类，少数类比例：{t.value_counts(normalize=True).min():.4f}")
             print("→ 指标优先考虑 AUC；如果比例悬殊（比如 1:10），准确率就没意义了")
         print()
 
@@ -186,14 +190,17 @@ def main():
         print(f"⚠  缺失超过 40% 的列：{high_missing}  → 考虑删掉，或只保留'是否缺失'标记")
         problems += 1
 
-    # 缺失成组出现
+    # 缺失成组出现：缺失位置完全相同的列归成一组
     missing_cols = [c for c in df.columns if 0 < df[c].isna().mean() < 0.4]
-    if len(missing_cols) >= 3:
-        flags = df[missing_cols].isna()
-        same = flags.eq(flags.iloc[:, 0], axis=0).all().all()
-        if same:
-            print(f"⚠  这些列 {missing_cols} 的缺失位置完全相同")
+    groups = {}
+    for c in missing_cols:
+        key = df[c].isna().to_numpy().tobytes()
+        groups.setdefault(key, []).append(c)
+    for group in groups.values():
+        if len(group) >= 2:
+            print(f"⚠  这些列 {group} 的缺失位置完全相同")
             print("     → 它们很可能是同一批样本一起缺的，加一列'是否缺失'就够了")
+            problems += 1
 
     if problems == 0:
         print("没发现明显问题。")
