@@ -45,9 +45,10 @@ uv run tensorboard --logdir logs      # 查看训练曲线
 uv run python 体检.py train.csv        # 拿到一张新表，先跑这个看里面有什么
 ```
 
-练习数据（Adult）的用法：
+练习数据（Adult）的用法。两个版本内容一样，`adult.csv` 更干净好读，`adult.data` 是原始版本、多一个"脏值"的坑：
 
 ```bash
+uv run python 体检.py practice/adult.csv
 uv run python 体检.py practice/adult.data --no-header --names-file practice/adult_列名.txt
 ```
 
